@@ -1,5 +1,6 @@
 import os
 import requests
+import psycopg2
 from telegram.ext import Application, CommandHandler, ContextTypes
 from telegram import Update  # Add this import
 
@@ -15,10 +16,25 @@ def get_bitcoin_price():
 # Define the /start command handler
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.message.chat_id
+    username = update.effective_chat.username
     print("Chat_id: ", chat_id)
     await update.message.reply_text('Hello! I am your Bitcoin price bot. Use /price to get the current Bitcoin price.')
     # Store chat_id for price updates
     context.bot_data['chat_id'] = chat_id
+
+    # Store chat_id and username in database
+    try:
+        with psycopg2.connect(os.environ["DATABASE_URL"]) as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO telegram_users (chat_id, username) VALUES (%s, %s) ON CONFLICT (chat_id) DO NOTHING",
+                    (chat_id, username)
+                )
+                conn.commit()
+        update.message.reply_text("Your chat ID has been saved!")
+    except Exception as e:
+        update.message.reply_text(f"Error saving chat ID: {str(e)}")
+        
     # Schedule price updates every 10 minutes (600 seconds)
     # context.job_queue.run_repeating(send_price_update, interval=15, first=10, data=chat_id)
 
