@@ -5,11 +5,11 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 from telegram import Update  # Add this import
 
 # Fetch Bitcoin price from CoinGecko
-def get_bitcoin_price():
+def get_solana_price():
     try:
-        response = requests.get('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd')
+        response = requests.get('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd')
         data = response.json()
-        return data['bitcoin']['usd']
+        return data['solana']['usd']
     except Exception as e:
         return f"Error fetching price: {e}"
 
@@ -34,20 +34,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         update.message.reply_text("Your chat ID has been saved!")
     except Exception as e:
         update.message.reply_text(f"Error saving chat ID: {str(e)}")
-        
-    # Schedule price updates every 10 minutes (600 seconds)
-    # context.job_queue.run_repeating(send_price_update, interval=15, first=10, data=chat_id)
 
 # Define the /price command handler
 async def price(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    btc_price = get_bitcoin_price()
-    await update.message.reply_text(f'Current Bitcoin price: ${btc_price}')
-
-# Function to send periodic price updates
-async def send_price_update(context: ContextTypes.DEFAULT_TYPE) -> None:
-    chat_id = context.job.data  # Retrieve chat_id from data
-    btc_price = get_bitcoin_price()
-    await context.bot.send_message(chat_id=chat_id, text=f'Bitcoin price update: ${btc_price}')
+    sol_price = get_solana_price()
+    await update.message.reply_text(f'Current Solana price: ${sol_price}')
 
 def main() -> None:
     token = os.getenv('BOT_TOKEN')  # Get from env var
