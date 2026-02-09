@@ -2,7 +2,7 @@ import os
 import requests
 import psycopg2
 from telegram.ext import Application, CommandHandler, ContextTypes
-from telegram import Update  # Add this import
+from telegram import Update, BotCommand  # Add this import
 
 # Fetch Bitcoin price from CoinGecko
 def get_solana_price():
@@ -55,11 +55,26 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="MarkdownV2"
     )
 
+async def post_init(application: Application) -> None:
+    commands = [
+        BotCommand("start",  "Start the bot or get welcome message"),
+        BotCommand("price",  "Get current price / rates"),
+        BotCommand("help",   "Show help and list of commands"),
+    ]
+    await application.bot.set_my_commands(commands)
+
 def main() -> None:
     token = os.getenv('BOT_TOKEN')  # Get from env var
     if not token:
         raise ValueError("BOT_TOKEN environment variable not set!")
-    application = Application.builder().token(token).build()
+    
+     # Build application and register post_init
+    application = (
+        Application.builder()
+        .token(token)
+        .post_init(post_init)          # ← this is the key addition
+        .build()
+    )
 
     # Add command handlers
     application.add_handler(CommandHandler("start", start))
