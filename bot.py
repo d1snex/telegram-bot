@@ -40,6 +40,21 @@ async def price(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     sol_price = get_solana_price()
     await update.message.reply_text(f'Current Solana price: ${sol_price}')
 
+# Define the /help command handler
+async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    help_text = (
+        "*Welcome to Apeye \\- your X posts AI evaluator\\!*\n\n"
+        "I can do the following:\n\n"
+        "• /start — get started\n"
+        "• /list — list currently monitor X profiles\n"
+        "• /help — show this help\n\n"
+        "Just type / to see the command menu\\."
+    )
+    await update.message.reply_text(
+        help_text,
+        parse_mode="MarkdownV2"
+    )
+
 def main() -> None:
     token = os.getenv('BOT_TOKEN')  # Get from env var
     if not token:
@@ -49,6 +64,7 @@ def main() -> None:
     # Add command handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("price", price))
+    application.add_handler(CommandHandler("help", help))
 
     # Start the bot
     print("Bot is running...")
