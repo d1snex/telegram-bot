@@ -40,13 +40,42 @@ async def price(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     sol_price = get_solana_price()
     await update.message.reply_text(f'Current Solana price: ${sol_price}')
 
+# Define the /list command handler
+async def list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat_id = update.message.chat_id
+
+    # Store chat_id and username in database
+    try:
+        with psycopg2.connect(os.environ["DATABASE_URL"]) as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT profile_id FROM followed_profiles WHERE chat_id = %s ORDER BY follow_date ASC;",
+                    (chat_id,)
+                )
+                profiles = cur.fetchall()
+                cur.close()
+                conn.close()
+                
+                if not profiles:
+                    await update.message.reply("You don't follow any profiles yet.")
+                    return
+                
+                # Format as a numbered list (or comma-separated, etc.)
+                profile_list = "\n".join(f"{i+1}. {profile[0]}" for i, profile in enumerate(profiles))
+                await update.message.reply(f"Profiles you follow:\n{profile_list}")
+
+    except Exception as e:
+        await update.message.reply("Sorry, there was an error retrieving your followed profiles. Try again later.")
+
+
 # Define the /help command handler
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     help_text = (
         "*Welcome to Apeye \\- your X posts AI evaluator\\!*\n\n"
         "I can do the following:\n\n"
         "• /start — get started\n"
-        "• /list — list currently monitor X profiles\n"
+        "• /price — current SOL price\n"
+        "• /list — list currently monitored X profiles\n"
         "• /help — show this help\n\n"
         "Just type / to see the command menu\\."
     )
@@ -57,9 +86,10 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def post_init(application: Application) -> None:
     commands = [
-        BotCommand("start",  "Start the bot or get welcome message"),
-        BotCommand("price",  "Get current price / rates"),
-        BotCommand("help",   "Show help and list of commands"),
+        BotCommand("start",  "Start the bot "),
+        BotCommand("price",  "Get current SOL price"),
+        BotCommand("list",  "List monitored X profiles"),
+        BotCommand("help",   "Show help"),
     ]
     await application.bot.set_my_commands(commands)
 
@@ -79,6 +109,7 @@ def main() -> None:
     # Add command handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("price", price))
+    application.add_handler(CommandHandler("list", list))
     application.add_handler(CommandHandler("help", help))
 
     # Start the bot
