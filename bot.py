@@ -62,10 +62,10 @@ async def list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 
                 # Format as a numbered list (or comma-separated, etc.)
                 profile_list = "\n".join(f"{i+1}. {profile[0]}" for i, profile in enumerate(profiles))
-                await update.message.reply(f"Profiles you follow:\n{profile_list}")
+                await update.message.reply_text(f"Profiles you follow:\n{profile_list}")
 
     except Exception as e:
-        await update.message.reply("Sorry, there was an error retrieving your followed profiles. Try again later.")
+        await update.message.reply_text("Sorry, there was an error retrieving your followed profiles. Try again later.")
 
 
 # Define the /help command handler
