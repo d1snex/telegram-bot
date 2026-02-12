@@ -44,7 +44,6 @@ async def price(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.message.chat_id
 
-    # Store chat_id and username in database
     try:
         with psycopg2.connect(os.environ["DATABASE_URL"]) as conn:
             with conn.cursor() as cur:
@@ -53,18 +52,16 @@ async def list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                     (chat_id,)
                 )
                 profiles = cur.fetchall()
-                cur.close()
-                conn.close()
-                
-                if not profiles:
-                    await update.message.reply("You don't follow any profiles yet.")
-                    return
-                
-                # Format as a numbered list (or comma-separated, etc.)
-                profile_list = "\n".join(f"{i+1}. {profile[0]}" for i, profile in enumerate(profiles))
-                await update.message.reply_text(f"Profiles you follow:\n{profile_list}")
+
+        if not profiles:
+            await update.message.reply_text("You don't follow any profiles yet.")
+            return
+
+        profile_list = "\n".join(f"{i+1}. {profile[0]}" for i, profile in enumerate(profiles))
+        await update.message.reply_text(f"Profiles you follow:\n{profile_list}")
 
     except Exception as e:
+        print(f"Error in /list: {e}")
         await update.message.reply_text("Sorry, there was an error retrieving your followed profiles. Try again later.")
 
 
