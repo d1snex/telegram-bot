@@ -2,9 +2,24 @@ import os
 import requests
 import psycopg2
 from telegram.ext import Application, CommandHandler, ContextTypes
-from telegram import Update, BotCommand  # Add this import
+from telegram import Update, BotCommand
+from telegram.request import HTTPXRequest
+from telegram.error import NetworkError, TimedOut
+import logging
 
-# Fetch Bitcoin price from CoinGecko
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    logger.error("Exception while handling an update:", exc_info=context.error)
+
+    if isinstance(context.error, (NetworkError, TimedOut)):
+        logger.warning("Transient network error with Telegram → polling should retry automatically")
+
+# Fetch Solana price from CoinGecko
 def get_solana_price():
     try:
         response = requests.get('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd')
@@ -95,11 +110,19 @@ def main() -> None:
     if not token:
         raise ValueError("BOT_TOKEN environment variable not set!")
     
-     # Build application and register post_init
+    request = HTTPXRequest(
+        connect_timeout = 20.0,
+        read_timeout    = 45.0,
+        write_timeout   = 30.0,
+        pool_timeout    = 30.0,
+    )
+
+    # Build application and register post_init
     application = (
         Application.builder()
         .token(token)
-        .post_init(post_init)          # ← this is the key addition
+        .request(request)           # ← attach custom request backend
+        .post_init(post_init)
         .build()
     )
 
@@ -109,9 +132,14 @@ def main() -> None:
     application.add_handler(CommandHandler("list", list))
     application.add_handler(CommandHandler("help", help))
 
+    application.add_error_handler(error_handler)
+
     # Start the bot
     print("Bot is running...")
-    application.run_polling()
+    logger.info("Starting polling with increased timeouts...")
+    application.run_polling(
+        drop_pending_updates=True
+    )
 
 if __name__ == '__main__':
     main()
